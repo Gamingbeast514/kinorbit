@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "KinOrbit",
+    "slug": "kinorbit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0B1215"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kinorbit.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "KinOrbit uses your location to show your live position to your trusted Orbit members and trigger Zone alerts.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "KinOrbit uses background location to keep your Orbit updated and deliver arrival or departure alerts."
+      }
+    },
+    "android": {
+      "package": "com.kinorbit.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B1215",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
