@@ -4,6 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CircleModal } from '../components/CircleModal';
 import { MemberTelemetryStrip } from '../components/MemberTelemetryStrip';
+import { OnboardingModal } from '../components/OnboardingModal';
 import { OrbitHeader } from '../components/OrbitHeader';
 import { RadarMapView } from '../components/RadarMapView';
 import { useOrbit } from '../context/OrbitContext';
@@ -18,10 +19,14 @@ export function RadarScreen() {
     sendCheckIn,
     pingMember,
     sosActive,
+    liveBanner,
+    dismissBanner,
+    profile,
     locationPermission,
   } = useOrbit();
 
   const [circlesOpen, setCirclesOpen] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [focusTrigger, setFocusTrigger] = useState<{ member: OrbitMember; seq: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -64,6 +69,17 @@ export function RadarScreen() {
           </View>
         )}
 
+        {liveBanner && !sosActive && (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={dismissBanner}
+            style={styles.liveBanner}
+          >
+            <Ionicons name="notifications" size={15} color={Colors.accentPrimary} />
+            <Text style={styles.liveBannerText}>{liveBanner}</Text>
+          </TouchableOpacity>
+        )}
+
         {locationPermission === 'denied' && (
           <View style={styles.permBanner}>
             <Ionicons name="location-outline" size={15} color={Colors.accentAmber} />
@@ -97,6 +113,11 @@ export function RadarScreen() {
       </View>
 
       <CircleModal visible={circlesOpen} onClose={() => setCirclesOpen(false)} />
+      <OnboardingModal
+        visible={!profile.onboarded && !onboardingDismissed}
+        isFirstLaunch
+        onClose={() => setOnboardingDismissed(true)}
+      />
     </View>
   );
 }
@@ -127,6 +148,23 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: 12,
     fontWeight: '800',
+  },
+  liveBanner: {
+    marginHorizontal: Spacing.md,
+    backgroundColor: Colors.bgGlass,
+    borderWidth: 1,
+    borderColor: Colors.borderAccent,
+    borderRadius: Radii.md,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  liveBannerText: {
+    color: Colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
   },
   permBanner: {
     marginHorizontal: Spacing.md,

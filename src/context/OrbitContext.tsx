@@ -20,21 +20,34 @@ import {
   OrbitCircle,
   OrbitFeedEvent,
   OrbitMember,
+  UserProfile,
 } from '../types/orbit';
 import { findContainingZone, generateInviteCode, inferMotionState } from '../utils/geo';
 
-const STORAGE_KEY = '@kinorbit_state_v1';
+const STORAGE_KEY = '@kinorbit_state_v2';
+
+const DEFAULT_PROFILE: UserProfile = {
+  name: 'You',
+  initials: 'YO',
+  avatarColor: '#00D2B4',
+  speedUnit: 'kmh',
+  onboarded: false,
+};
 
 interface PersistedState {
   circles: OrbitCircle[];
   activeCircleId: string;
   zones: GeofenceZone[];
+  trips: DriveTrip[];
   feed: OrbitFeedEvent[];
   contacts: EmergencyContact[];
   ghostMode: boolean;
+  profile: UserProfile;
 }
 
 interface OrbitContextValue {
+  profile: UserProfile;
+  updateProfile: (patch: Partial<UserProfile>) => void;
   circles: OrbitCircle[];
   activeCircle: OrbitCircle;
   activeMembers: OrbitMember[];
@@ -48,6 +61,9 @@ interface OrbitContextValue {
   contacts: EmergencyContact[];
   ghostMode: boolean;
   sosActive: boolean;
+  simulatingDrive: boolean;
+  liveBanner: string | null;
+  dismissBanner: () => void;
   locationPermission: 'pending' | 'granted' | 'denied';
   switchCircle: (circleId: string) => void;
   createCircle: (name: string) => void;
@@ -57,31 +73,49 @@ interface OrbitContextValue {
   resolveSos: () => void;
   sendCheckIn: (note?: string) => void;
   pingMember: (memberId: string) => void;
+  startTestDrive: () => void;
   addZone: (zone: Omit<GeofenceZone, 'id'>) => void;
+  updateZoneRadius: (zoneId: string, radiusMeters: number) => void;
   toggleZoneAlert: (zoneId: string, kind: 'arrive' | 'leave') => void;
   removeZone: (zoneId: string) => void;
   addEmergencyContact: (contact: Omit<EmergencyContact, 'id'>) => void;
   removeEmergencyContact: (contactId: string) => void;
+  resetDemoData: () => void;
 }
 
 const OrbitContext = createContext<OrbitContextValue | null>(null);
 
 export function OrbitProvider({ children }: { children: React.ReactNode }) {
+  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [circles, setCircles] = useState<OrbitCircle[]>(SEED_CIRCLES);
   const [activeCircleId, setActiveCircleId] = useState<string>(SEED_CIRCLES[0].id);
   const [members, setMembers] = useState<OrbitMember[]>(() => createSeedMembers(DEFAULT_CENTER));
   const [selectedMemberId, setSelectedMemberId] = useState<string>('self');
   const [zones, setZones] = useState<GeofenceZone[]>(() => createSeedZones(DEFAULT_CENTER));
-  const [trips] = useState<DriveTrip[]>(SEED_TRIPS);
+  const [trips, setTrips] = useState<DriveTrip[]>(SEED_TRIPS);
   const [feed, setFeed] = useState<OrbitFeedEvent[]>(SEED_FEED);
   const [contacts, setContacts] = useState<EmergencyContact[]>(SEED_CONTACTS);
   const [ghostMode, setGhostMode] = useState(false);
   const [sosActive, setSosActive] = useState(false);
+  const [simulatingDrive, setSimulatingDrive] = useState(false);
+  const [liveBanner, setLiveBanner] = useState<string | null>(null);
   const [locationPermission, setLocationPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
 
   const hasAnchoredToRealGps = useRef(false);
   const zonesRef = useRef(zones);
   zonesRef.current = zones;
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const prevZonesByMember = useRef<Record<string, string | null>>({});
+
+  const showBanner = useCallback((msg: string) => {
+    setLiveBanner(msg);
+    setTimeout(() => {
+      setLiveBanner((curr) => (curr === msg ? null : curr));
+    }, 4000);
+  }, []);
+
+  const dismissBanner = useCallback(() => setLiveBanner(null), []);
 
   // Hydrate persisted state
   useEffect(() => {
@@ -93,9 +127,26 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
         if (parsed.circles?.length) setCircles(parsed.circles);
         if (parsed.activeCircleId) setActiveCircleId(parsed.activeCircleId);
         if (parsed.zones?.length) setZones(parsed.zones);
+        if (parsed.trips?.length) setTrips(parsed.trips);
         if (parsed.feed?.length) setFeed(parsed.feed);
         if (parsed.contacts?.length) setContacts(parsed.contacts);
         if (typeof parsed.ghostMode === 'boolean') setGhostMode(parsed.ghostMode);
+        if (parsed.profile) {
+          setProfile(parsed.profile);
+          setMembers((prev) =>
+            prev.map((m) =>
+              m.isSelf
+                ? {
+                    ...m,
+                    name: parsed.profile!.name,
+                    initials: parsed.profile!.initials,
+                    avatarColor: parsed.profile!.avatarColor,
+                    ghostMode: parsed.ghostMode ?? m.ghostMode,
+                  }
+                : m
+            )
+          );
+        }
       } catch {
         // Ignore corrupt storage
       }
@@ -108,12 +159,70 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
       circles,
       activeCircleId,
       zones,
+      trips: trips.slice(0, 30),
       feed: feed.slice(0, 40),
       contacts,
       ghostMode,
+      profile,
     };
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload)).catch(() => {});
-  }, [circles, activeCircleId, zones, feed, contacts, ghostMode]);
+  }, [circles, activeCircleId, zones, trips, feed, contacts, ghostMode, profile]);
+
+  // Helper to detect geofence entry/exit transitions
+  const checkZoneTransitions = useCallback(
+    (updatedMembers: OrbitMember[]) => {
+      const currentZones = zonesRef.current;
+      const newEvents: OrbitFeedEvent[] = [];
+
+      for (const m of updatedMembers) {
+        const prevZone = prevZonesByMember.current[m.id];
+        const nextZone = m.currentZoneName;
+
+        if (prevZone === undefined) {
+          prevZonesByMember.current[m.id] = nextZone;
+          continue;
+        }
+
+        if (prevZone !== nextZone) {
+          if (nextZone) {
+            const zObj = currentZones.find((z) => z.name === nextZone);
+            if (zObj?.notifyOnArrive) {
+              const msg = `${m.name} arrived at ${nextZone}`;
+              newEvents.push({
+                id: `f-${Date.now()}-${m.id}`,
+                type: 'zone_arrive',
+                memberName: m.name,
+                message: `Arrived at ${nextZone}`,
+                locationLabel: `${nextZone} Zone`,
+                timestamp: Date.now(),
+              });
+              showBanner(msg);
+            }
+          } else if (prevZone) {
+            const zObj = currentZones.find((z) => z.name === prevZone);
+            if (zObj?.notifyOnLeave) {
+              const msg = `${m.name} departed ${prevZone}`;
+              newEvents.push({
+                id: `f-${Date.now()}-${m.id}`,
+                type: 'zone_leave',
+                memberName: m.name,
+                message: `Departed ${prevZone}`,
+                locationLabel: `${prevZone} Zone`,
+                timestamp: Date.now(),
+              });
+              showBanner(msg);
+            }
+          }
+          prevZonesByMember.current[m.id] = nextZone;
+        }
+      }
+
+      if (newEvents.length > 0) {
+        setFeed((prev) => [...newEvents, ...prev]);
+      }
+    },
+    [showBanner]
+  );
 
   // Real battery telemetry
   useEffect(() => {
@@ -157,14 +266,23 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
 
           if (!hasAnchoredToRealGps.current) {
             hasAnchoredToRealGps.current = true;
-            // Re-anchor demo members & zones around user's real neighborhood on first fix
-            setMembers(createSeedMembers(coords));
+            const seeded = createSeedMembers(coords).map((m) =>
+              m.isSelf
+                ? {
+                    ...m,
+                    name: profileRef.current.name,
+                    initials: profileRef.current.initials,
+                    avatarColor: profileRef.current.avatarColor,
+                  }
+                : m
+            );
+            setMembers(seeded);
             setZones(createSeedZones(coords));
             return;
           }
 
-          setMembers((prev) =>
-            prev.map((m) => {
+          setMembers((prev) => {
+            const next = prev.map((m) => {
               if (!m.isSelf) return m;
               const zone = findContainingZone(coords, zonesRef.current);
               return {
@@ -175,8 +293,10 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
                 currentZoneName: zone ? zone.name : null,
                 lastUpdatedAt: Date.now(),
               };
-            })
-          );
+            });
+            checkZoneTransitions(next);
+            return next;
+          });
         };
 
         const current = await Location.getCurrentPositionAsync({
@@ -212,13 +332,13 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
       active = false;
       sub?.remove();
     };
-  }, []);
+  }, [checkZoneTransitions]);
 
   // Subtle live simulation for non-self Orbit members so the Radar feels alive
   useEffect(() => {
     const timer = setInterval(() => {
-      setMembers((prev) =>
-        prev.map((m) => {
+      setMembers((prev) => {
+        const next = prev.map((m) => {
           if (m.isSelf || m.motionState === 'stationary') return m;
           const deltaScale = m.motionState === 'driving' ? 0.00045 : 0.00008;
           const nextCoords = {
@@ -232,11 +352,32 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
             currentZoneName: zone ? zone.name : null,
             lastUpdatedAt: Date.now(),
           };
-        })
-      );
+        });
+        checkZoneTransitions(next);
+        return next;
+      });
     }, 4500);
 
     return () => clearInterval(timer);
+  }, [checkZoneTransitions]);
+
+  const updateProfile = useCallback((patch: Partial<UserProfile>) => {
+    setProfile((prev) => {
+      const merged = { ...prev, ...patch };
+      setMembers((mList) =>
+        mList.map((m) =>
+          m.isSelf
+            ? {
+                ...m,
+                name: merged.name,
+                initials: merged.initials,
+                avatarColor: merged.avatarColor,
+              }
+            : m
+        )
+      );
+      return merged;
+    });
   }, []);
 
   const activeCircle = useMemo(
@@ -282,7 +423,6 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
         setActiveCircleId(existing.id);
         return true;
       }
-      // Create a joined Orbit for valid 6-char invite codes
       const joined: OrbitCircle = {
         id: `c-${Date.now()}`,
         name: `Orbit ${normalized}`,
@@ -314,14 +454,15 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
       {
         id: `f-${Date.now()}`,
         type: 'sos',
-        memberName: 'You',
+        memberName: profileRef.current.name,
         message: 'SOS Beacon activated — live coordinates shared with Orbit & Emergency Contacts.',
         locationLabel: selfMember.currentZoneName ?? 'Live GPS Pin',
         timestamp: Date.now(),
       },
       ...prev,
     ]);
-  }, [selfMember.currentZoneName]);
+    showBanner('SOS Beacon Broadcasting to Orbit');
+  }, [selfMember.currentZoneName, showBanner]);
 
   const resolveSos = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -331,24 +472,27 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
       {
         id: `f-${Date.now()}`,
         type: 'checkin',
-        memberName: 'You',
+        memberName: profileRef.current.name,
         message: 'SOS Beacon cleared — marked safe.',
         locationLabel: selfMember.currentZoneName ?? 'Live GPS Pin',
         timestamp: Date.now(),
       },
       ...prev,
     ]);
-  }, [selfMember.currentZoneName]);
+    showBanner('SOS cleared — marked safe');
+  }, [selfMember.currentZoneName, showBanner]);
 
   const sendCheckIn = useCallback(
     (note?: string) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      const label = selfMember.currentZoneName ?? `${selfMember.coords.latitude.toFixed(4)}, ${selfMember.coords.longitude.toFixed(4)}`;
+      const label =
+        selfMember.currentZoneName ??
+        `${selfMember.coords.latitude.toFixed(4)}, ${selfMember.coords.longitude.toFixed(4)}`;
       setFeed((prev) => [
         {
           id: `f-${Date.now()}`,
           type: 'checkin',
-          memberName: 'You',
+          memberName: profileRef.current.name,
           message: note?.trim() ? note.trim() : `Checked in safely at ${label}`,
           locationLabel: label,
           timestamp: Date.now(),
@@ -368,7 +512,7 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
         {
           id: `f-${Date.now()}`,
           type: 'ping',
-          memberName: 'You',
+          memberName: profileRef.current.name,
           message: `Sent a location ping to ${target.name}`,
           locationLabel: target.currentZoneName ?? 'En route',
           timestamp: Date.now(),
@@ -379,9 +523,66 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
     [members]
   );
 
+  const startTestDrive = useCallback(() => {
+    if (simulatingDrive) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setSimulatingDrive(true);
+    showBanner('Test Drive started — watch Radar & Zones');
+
+    let step = 0;
+    const originZone = selfMember.currentZoneName ?? 'Current Pin';
+    const interval = setInterval(() => {
+      step += 1;
+      setMembers((prev) => {
+        const next = prev.map((m) => {
+          if (!m.isSelf) return m;
+          const speed = step >= 6 ? 0 : 38 + step * 5;
+          const nextCoords = {
+            latitude: m.coords.latitude + (step <= 3 ? 0.0012 : -0.0008),
+            longitude: m.coords.longitude + (step <= 3 ? 0.001 : -0.0006),
+          };
+          const zone = findContainingZone(nextCoords, zonesRef.current);
+          return {
+            ...m,
+            coords: nextCoords,
+            speedKmh: speed,
+            motionState: inferMotionState(speed),
+            currentZoneName: zone ? zone.name : null,
+            lastUpdatedAt: Date.now(),
+          };
+        });
+        checkZoneTransitions(next);
+        return next;
+      });
+
+      if (step >= 6) {
+        clearInterval(interval);
+        setSimulatingDrive(false);
+        const newTrip: DriveTrip = {
+          id: `t-${Date.now()}`,
+          memberName: profileRef.current.name,
+          originLabel: originZone,
+          destinationLabel: 'Test Loop',
+          distanceKm: 3.4,
+          durationMin: 8,
+          maxSpeedKmh: 63,
+          safetyScore: 98,
+          eventsCount: 0,
+          timestamp: Date.now(),
+        };
+        setTrips((prev) => [newTrip, ...prev]);
+        showBanner('Test Drive completed — Score 98 logged');
+      }
+    }, 1500);
+  }, [simulatingDrive, selfMember.currentZoneName, checkZoneTransitions, showBanner]);
+
   const addZone = useCallback((zone: Omit<GeofenceZone, 'id'>) => {
     const newZone: GeofenceZone = { ...zone, id: `z-${Date.now()}` };
     setZones((prev) => [newZone, ...prev]);
+  }, []);
+
+  const updateZoneRadius = useCallback((zoneId: string, radiusMeters: number) => {
+    setZones((prev) => prev.map((z) => (z.id === zoneId ? { ...z, radiusMeters } : z)));
   }, []);
 
   const toggleZoneAlert = useCallback((zoneId: string, kind: 'arrive' | 'leave') => {
@@ -407,9 +608,22 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
     setContacts((prev) => prev.filter((c) => c.id !== contactId));
   }, []);
 
+  const resetDemoData = useCallback(() => {
+    setCircles(SEED_CIRCLES);
+    setActiveCircleId(SEED_CIRCLES[0].id);
+    setTrips(SEED_TRIPS);
+    setFeed(SEED_FEED);
+    setContacts(SEED_CONTACTS);
+    setGhostMode(false);
+    setSosActive(false);
+    showBanner('Demo data restored');
+  }, [showBanner]);
+
   return (
     <OrbitContext.Provider
       value={{
+        profile,
+        updateProfile,
         circles,
         activeCircle,
         activeMembers,
@@ -423,6 +637,9 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
         contacts,
         ghostMode,
         sosActive,
+        simulatingDrive,
+        liveBanner,
+        dismissBanner,
         locationPermission,
         switchCircle,
         createCircle,
@@ -432,11 +649,14 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
         resolveSos,
         sendCheckIn,
         pingMember,
+        startTestDrive,
         addZone,
+        updateZoneRadius,
         toggleZoneAlert,
         removeZone,
         addEmergencyContact,
         removeEmergencyContact,
+        resetDemoData,
       }}
     >
       {children}

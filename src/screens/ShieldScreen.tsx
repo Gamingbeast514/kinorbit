@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Linking,
   ScrollView,
   StyleSheet,
   Switch,
@@ -11,18 +12,22 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOrbit } from '../context/OrbitContext';
 import { Colors, Radii, Spacing } from '../theme/tokens';
-import { formatTimeAgo } from '../utils/geo';
+import { formatSpeed, formatTimeAgo } from '../utils/geo';
 
 export function ShieldScreen() {
   const insets = useSafeAreaInsets();
   const {
     selfMember,
+    profile,
     trips,
+    contacts,
     ghostMode,
     toggleGhostMode,
     sosActive,
     triggerSos,
     resolveSos,
+    simulatingDrive,
+    startTestDrive,
   } = useOrbit();
 
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -84,10 +89,23 @@ export function ShieldScreen() {
           </View>
 
           {sosActive ? (
-            <TouchableOpacity onPress={resolveSos} style={styles.safeBtn}>
-              <Ionicons name="shield-checkmark" size={20} color={Colors.textInverse} />
-              <Text style={styles.safeBtnText}>Mark Safe</Text>
-            </TouchableOpacity>
+            <View style={{ gap: 8 }}>
+              <TouchableOpacity onPress={resolveSos} style={styles.safeBtn}>
+                <Ionicons name="shield-checkmark" size={18} color={Colors.textInverse} />
+                <Text style={styles.safeBtnText}>Mark Safe</Text>
+              </TouchableOpacity>
+              {contacts[0] && (
+                <TouchableOpacity
+                  onPress={() =>
+                    Linking.openURL(`tel:${contacts[0].phone.replace(/\s+/g, '')}`).catch(() => {})
+                  }
+                  style={styles.callContactBtn}
+                >
+                  <Ionicons name="call" size={14} color={Colors.textPrimary} />
+                  <Text style={styles.callContactText}>Call {contacts[0].name.split(' ')[0]}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           ) : countdown !== null ? (
             <TouchableOpacity onPress={cancelCountdown} style={styles.cancelSosBtn}>
               <Text style={styles.cancelSosText}>Cancel ({countdown})</Text>
@@ -122,7 +140,9 @@ export function ShieldScreen() {
           <View style={styles.metricsGrid}>
             <View style={styles.metricBox}>
               <Text style={styles.metricLabel}>SPEED</Text>
-              <Text style={styles.metricValue}>{selfMember.speedKmh} km/h</Text>
+              <Text style={styles.metricValue}>
+                {formatSpeed(selfMember.speedKmh, profile.speedUnit)}
+              </Text>
             </View>
             <View style={styles.metricBox}>
               <Text style={styles.metricLabel}>BATTERY</Text>
@@ -138,7 +158,25 @@ export function ShieldScreen() {
         </View>
 
         {/* Drive Safety Trips */}
-        <Text style={styles.sectionTitle}>Recent Drive Telemetry</Text>
+        <View style={styles.tripHeaderRow}>
+          <Text style={styles.sectionTitle}>Recent Drive Telemetry</Text>
+          <TouchableOpacity
+            onPress={startTestDrive}
+            disabled={simulatingDrive}
+            style={[styles.simBtn, simulatingDrive && styles.simBtnActive]}
+          >
+            <Ionicons
+              name={simulatingDrive ? 'car-sport' : 'play-outline'}
+              size={13}
+              color={simulatingDrive ? Colors.textInverse : Colors.accentPrimary}
+            />
+            <Text
+              style={[styles.simBtnText, simulatingDrive && styles.simBtnTextActive]}
+            >
+              {simulatingDrive ? 'Driving...' : 'Simulate Drive'}
+            </Text>
+          </TouchableOpacity>
+        </View>
         {trips.map((trip) => (
           <View key={trip.id} style={styles.tripCard}>
             <View style={styles.tripTop}>
@@ -157,7 +195,9 @@ export function ShieldScreen() {
               </View>
             </View>
             <View style={styles.tripStatsRow}>
-              <Text style={styles.tripStat}>Max {trip.maxSpeedKmh} km/h</Text>
+              <Text style={styles.tripStat}>
+                Max {formatSpeed(trip.maxSpeedKmh, profile.speedUnit)}
+              </Text>
               <Text
                 style={[
                   styles.tripStat,
@@ -269,6 +309,49 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
     fontWeight: '800',
     fontSize: 12,
+  },
+  callContactBtn: {
+    backgroundColor: Colors.accentCrimson,
+    borderRadius: Radii.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  callContactText: {
+    color: Colors.textPrimary,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  tripHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  simBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: Colors.accentPrimaryDim,
+    borderWidth: 1,
+    borderColor: Colors.borderAccent,
+    borderRadius: Radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  simBtnActive: {
+    backgroundColor: Colors.accentPrimary,
+  },
+  simBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.accentPrimary,
+  },
+  simBtnTextActive: {
+    color: Colors.textInverse,
   },
   card: {
     backgroundColor: Colors.bgSecondary,

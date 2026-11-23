@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   Alert,
   Modal,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -56,6 +57,17 @@ export function CircleModal({ visible, onClose }: CircleModalProps) {
             <Text style={styles.inviteHint}>
               Share this code with family or crew to join {activeCircle.name}
             </Text>
+            <TouchableOpacity
+              onPress={() =>
+                Share.share({
+                  message: `Join my "${activeCircle.name}" Orbit on KinOrbit! Invite code: ${activeCircle.inviteCode}`,
+                }).catch(() => {})
+              }
+              style={styles.shareCodeBtn}
+            >
+              <Ionicons name="share-social-outline" size={14} color={Colors.accentPrimary} />
+              <Text style={styles.shareCodeText}>Share Invite</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.circleList}>
@@ -174,6 +186,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  shareCodeBtn: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: Colors.bgSecondary,
+    borderWidth: 1,
+    borderColor: Colors.borderAccent,
+    borderRadius: Radii.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  shareCodeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.accentPrimary,
   },
   circleList: {
     gap: 8,

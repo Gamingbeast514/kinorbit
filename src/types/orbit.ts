@@ -72,3 +72,12 @@ export interface EmergencyContact {
   relation: string;
   phone: string;
 }
+
+export interface UserProfile {
+  name: string;
+  initials: string;
+  avatarColor: string;
+  speedUnit: 'kmh' | 'mph';
+  onboarded: boolean;
+}
+

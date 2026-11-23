@@ -9,25 +9,31 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OnboardingModal } from '../components/OnboardingModal';
 import { useOrbit } from '../context/OrbitContext';
 import { Colors, Radii, Spacing } from '../theme/tokens';
 import { FeedEventType } from '../types/orbit';
 import { formatTimeAgo } from '../utils/geo';
 
+const QUICK_STATUSES = ['On my way', 'Arrived safely', 'Need pickup', 'Low battery'];
+
 export function HubScreen() {
   const insets = useSafeAreaInsets();
   const {
+    profile,
     feed,
     contacts,
     sendCheckIn,
     addEmergencyContact,
     removeEmergencyContact,
+    resetDemoData,
   } = useOrbit();
 
   const [note, setNote] = useState('');
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [showAddContact, setShowAddContact] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handlePostNote = () => {
     sendCheckIn(note);
@@ -63,8 +69,17 @@ export function HubScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <Text style={styles.eyebrow}>ORBIT HUB</Text>
-      <Text style={styles.title}>Check-Ins & Contacts</Text>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.eyebrow}>ORBIT HUB</Text>
+          <Text style={styles.title}>Check-Ins & Contacts</Text>
+        </View>
+        <TouchableOpacity onPress={() => setProfileOpen(true)} style={styles.profilePill}>
+          <View style={[styles.profileDot, { backgroundColor: profile.avatarColor }]} />
+          <Text style={styles.profileText}>{profile.name}</Text>
+          <Ionicons name="settings-outline" size={14} color={Colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
@@ -83,6 +98,18 @@ export function HubScreen() {
             <Ionicons name="send" size={16} color={Colors.textInverse} />
           </TouchableOpacity>
         </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow}>
+          {QUICK_STATUSES.map((status) => (
+            <TouchableOpacity
+              key={status}
+              onPress={() => sendCheckIn(status)}
+              style={styles.quickChip}
+            >
+              <Text style={styles.quickChipText}>{status}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {/* Activity Timeline */}
         <Text style={styles.sectionTitle}>Live Orbit Timeline</Text>
@@ -158,7 +185,14 @@ export function HubScreen() {
             </View>
           ))}
         </View>
+
+        <TouchableOpacity onPress={resetDemoData} style={styles.resetBtn}>
+          <Ionicons name="refresh-outline" size={15} color={Colors.textSecondary} />
+          <Text style={styles.resetText}>Reset Demo Data</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      <OnboardingModal visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </View>
   );
 }
@@ -180,7 +214,66 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.textPrimary,
     marginTop: 2,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: Spacing.md,
+  },
+  profilePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: Colors.bgSecondary,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    borderRadius: Radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  profileDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  profileText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  quickRow: {
+    gap: 8,
+  },
+  quickChip: {
+    backgroundColor: Colors.bgSecondary,
+    borderWidth: 1,
+    borderColor: Colors.borderAccent,
+    borderRadius: Radii.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  quickChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.accentPrimary,
+  },
+  resetBtn: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.bgSecondary,
+  },
+  resetText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textSecondary,
   },
   scrollContent: {
     gap: 14,

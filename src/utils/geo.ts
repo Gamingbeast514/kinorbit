@@ -59,6 +59,13 @@ export function findContainingZone(
   return null;
 }
 
+export function formatSpeed(speedKmh: number, unit: 'kmh' | 'mph' = 'kmh'): string {
+  if (unit === 'mph') {
+    return `${Math.round(speedKmh * 0.621371)} mph`;
+  }
+  return `${Math.round(speedKmh)} km/h`;
+}
+
 export function generateInviteCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let out = '';

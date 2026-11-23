@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useOrbit } from '../context/OrbitContext';
 import { Colors, Radii, Spacing } from '../theme/tokens';
 import { OrbitMember } from '../types/orbit';
-import { distanceMeters, formatDistance, formatTimeAgo } from '../utils/geo';
+import { distanceMeters, formatDistance, formatSpeed, formatTimeAgo } from '../utils/geo';
 
 interface MemberTelemetryStripProps {
   onFocusMember: (member: OrbitMember) => void;
@@ -15,7 +15,16 @@ export function MemberTelemetryStrip({
   onFocusMember,
   onPingMember,
 }: MemberTelemetryStripProps) {
-  const { activeMembers, selfMember, selectedMemberId } = useOrbit();
+  const { activeMembers, selfMember, selectedMemberId, profile } = useOrbit();
+
+  const openDirections = (member: OrbitMember) => {
+    const { latitude, longitude } = member.coords;
+    const url =
+      Platform.OS === 'ios'
+        ? `http://maps.apple.com/?daddr=${latitude},${longitude}`
+        : `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+    Linking.openURL(url).catch(() => {});
+  };
 
   const renderMotionIcon = (state: OrbitMember['motionState']) => {
     if (state === 'driving') return 'car-sport-outline';
@@ -94,20 +103,28 @@ export function MemberTelemetryStrip({
                 <Text style={styles.telemetryText}>
                   {item.motionState === 'stationary'
                     ? 'Stationary'
-                    : `${item.speedKmh} km/h`}
+                    : formatSpeed(item.speedKmh, profile.speedUnit)}
                 </Text>
               </View>
 
               <Text style={styles.timeText}>{formatTimeAgo(item.lastUpdatedAt)}</Text>
 
               {!item.isSelf && (
-                <TouchableOpacity
-                  onPress={() => onPingMember(item)}
-                  style={styles.pingBtn}
-                >
-                  <Ionicons name="flash-outline" size={13} color={Colors.accentPrimary} />
-                  <Text style={styles.pingText}>Ping</Text>
-                </TouchableOpacity>
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    onPress={() => openDirections(item)}
+                    style={styles.routeBtn}
+                  >
+                    <Ionicons name="navigate-outline" size={12} color={Colors.accentSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => onPingMember(item)}
+                    style={styles.pingBtn}
+                  >
+                    <Ionicons name="flash-outline" size={13} color={Colors.accentPrimary} />
+                    <Text style={styles.pingText}>Ping</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </TouchableOpacity>
@@ -222,6 +239,16 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 11,
     color: Colors.textMuted,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  routeBtn: {
+    backgroundColor: 'rgba(56, 189, 248, 0.16)',
+    padding: 5,
+    borderRadius: Radii.pill,
   },
   pingBtn: {
     flexDirection: 'row',

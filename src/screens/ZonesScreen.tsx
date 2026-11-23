@@ -21,7 +21,7 @@ const ZONE_COLORS = ['#00D2B4', '#38BDF8', '#FFB020', '#A78BFA'];
 
 export function ZonesScreen() {
   const insets = useSafeAreaInsets();
-  const { zones, selfMember, addZone, toggleZoneAlert, removeZone } = useOrbit();
+  const { zones, selfMember, addZone, updateZoneRadius, toggleZoneAlert, removeZone } = useOrbit();
   const [modalVisible, setModalVisible] = useState(false);
   const [zoneName, setZoneName] = useState('');
   const [radius, setRadius] = useState(250);
@@ -109,6 +109,28 @@ export function ZonesScreen() {
                 <TouchableOpacity onPress={() => removeZone(zone.id)} style={styles.trashBtn}>
                   <Ionicons name="trash-outline" size={16} color={Colors.textMuted} />
                 </TouchableOpacity>
+              </View>
+
+              <View style={styles.inlineRadiusRow}>
+                {RADIUS_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt}
+                    onPress={() => updateZoneRadius(zone.id, opt)}
+                    style={[
+                      styles.inlineChip,
+                      zone.radiusMeters === opt && styles.inlineChipActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.inlineChipText,
+                        zone.radiusMeters === opt && styles.inlineChipTextActive,
+                      ]}
+                    >
+                      {opt >= 1000 ? '1 km' : `${opt}m`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
               <View style={styles.divider} />
@@ -289,6 +311,30 @@ const styles = StyleSheet.create({
   },
   trashBtn: {
     padding: 6,
+  },
+  inlineRadiusRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inlineChip: {
+    backgroundColor: Colors.bgElevated,
+    borderRadius: Radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  inlineChipActive: {
+    backgroundColor: Colors.accentPrimaryDim,
+    borderColor: Colors.accentPrimary,
+  },
+  inlineChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  inlineChipTextActive: {
+    color: Colors.accentPrimary,
   },
   divider: {
     height: 1,
