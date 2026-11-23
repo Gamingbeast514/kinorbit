@@ -12,6 +12,7 @@ import {
   SEED_FEED,
   SEED_TRIPS,
 } from '../data/seedData';
+import { DARK_THEME, LIGHT_THEME, ThemeColors } from '../theme/tokens';
 import {
   Coordinates,
   DriveTrip,
@@ -29,8 +30,9 @@ const STORAGE_KEY = '@kinorbit_state_v2';
 const DEFAULT_PROFILE: UserProfile = {
   name: 'You',
   initials: 'YO',
-  avatarColor: '#00D2B4',
+  avatarColor: '#27D38B',
   speedUnit: 'kmh',
+  themeMode: 'dark',
   onboarded: false,
 };
 
@@ -47,6 +49,8 @@ interface PersistedState {
 
 interface OrbitContextValue {
   profile: UserProfile;
+  colors: ThemeColors;
+  toggleThemeMode: () => void;
   updateProfile: (patch: Partial<UserProfile>) => void;
   circles: OrbitCircle[];
   activeCircle: OrbitCircle;
@@ -380,6 +384,19 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const colors = useMemo(
+    () => (profile.themeMode === 'light' ? LIGHT_THEME : DARK_THEME),
+    [profile.themeMode]
+  );
+
+  const toggleThemeMode = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setProfile((prev) => ({
+      ...prev,
+      themeMode: prev.themeMode === 'dark' ? 'light' : 'dark',
+    }));
+  }, []);
+
   const activeCircle = useMemo(
     () => circles.find((c) => c.id === activeCircleId) ?? circles[0],
     [circles, activeCircleId]
@@ -623,6 +640,8 @@ export function OrbitProvider({ children }: { children: React.ReactNode }) {
     <OrbitContext.Provider
       value={{
         profile,
+        colors,
+        toggleThemeMode,
         updateProfile,
         circles,
         activeCircle,

@@ -39,7 +39,7 @@ export function createSeedMembers(center: Coordinates): OrbitMember[] {
       name: 'Ayesha',
       initials: 'AY',
       role: 'Family',
-      avatarColor: '#38BDF8',
+      avatarColor: '#8B75FF',
       coords: {
         latitude: center.latitude + 0.0085,
         longitude: center.longitude + 0.0062,
@@ -56,7 +56,7 @@ export function createSeedMembers(center: Coordinates): OrbitMember[] {
       name: 'Zain',
       initials: 'ZN',
       role: 'Family',
-      avatarColor: '#FFB020',
+      avatarColor: '#FF9F2E',
       coords: {
         latitude: center.latitude - 0.0042,
         longitude: center.longitude + 0.0091,
@@ -72,7 +72,7 @@ export function createSeedMembers(center: Coordinates): OrbitMember[] {
       name: 'Sara',
       initials: 'SR',
       role: 'Close Friend',
-      avatarColor: '#A78BFA',
+      avatarColor: '#FF5A5F',
       coords: {
         latitude: center.latitude + 0.0021,
         longitude: center.longitude - 0.0074,

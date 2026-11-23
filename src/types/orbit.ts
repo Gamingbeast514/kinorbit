@@ -78,6 +78,7 @@ export interface UserProfile {
   initials: string;
   avatarColor: string;
   speedUnit: 'kmh' | 'mph';
+  themeMode: 'dark' | 'light';
   onboarded: boolean;
 }
 

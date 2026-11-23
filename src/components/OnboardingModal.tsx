@@ -9,9 +9,9 @@ import {
   View,
 } from 'react-native';
 import { useOrbit } from '../context/OrbitContext';
-import { Colors, Radii, Spacing } from '../theme/tokens';
+import { Radii, Spacing } from '../theme/tokens';
 
-const AVATAR_COLORS = ['#00D2B4', '#38BDF8', '#FFB020', '#A78BFA', '#FB7185'];
+const AVATAR_COLORS = ['#27D38B', '#8B75FF', '#FF9F2E', '#FF5A5F', '#38BDF8'];
 
 interface OnboardingModalProps {
   visible: boolean;
@@ -20,16 +20,18 @@ interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ visible, isFirstLaunch, onClose }: OnboardingModalProps) {
-  const { profile, updateProfile } = useOrbit();
+  const { profile, colors, updateProfile } = useOrbit();
   const [name, setName] = useState(profile.name === 'You' ? '' : profile.name);
   const [color, setColor] = useState(profile.avatarColor);
   const [speedUnit, setSpeedUnit] = useState<'kmh' | 'mph'>(profile.speedUnit);
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>(profile.themeMode);
 
   useEffect(() => {
     if (visible) {
       setName(profile.name === 'You' ? '' : profile.name);
       setColor(profile.avatarColor);
       setSpeedUnit(profile.speedUnit);
+      setThemeMode(profile.themeMode);
     }
   }, [visible, profile]);
 
@@ -47,6 +49,7 @@ export function OnboardingModal({ visible, isFirstLaunch, onClose }: OnboardingM
       initials: computeInitials(finalName),
       avatarColor: color,
       speedUnit,
+      themeMode,
       onboarded: true,
     });
     onClose();
@@ -55,7 +58,12 @@ export function OnboardingModal({ visible, isFirstLaunch, onClose }: OnboardingM
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.bgSecondary, borderColor: colors.borderAccent },
+          ]}
+        >
           <View style={styles.brandRow}>
             <View style={[styles.previewRing, { borderColor: color }]}>
               <View style={[styles.previewCore, { backgroundColor: color }]}>
@@ -63,30 +71,40 @@ export function OnboardingModal({ visible, isFirstLaunch, onClose }: OnboardingM
               </View>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.eyebrow}>
+              <Text style={[styles.eyebrow, { color: colors.accentPrimary }]}>
                 {isFirstLaunch ? 'WELCOME TO KINORBIT' : 'ORBIT PROFILE'}
               </Text>
-              <Text style={styles.title}>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>
                 {isFirstLaunch ? 'Set Up Your Beacon' : 'Customize Identity'}
               </Text>
             </View>
             {!isFirstLaunch && (
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Ionicons name="close" size={18} color={Colors.textPrimary} />
+              <TouchableOpacity
+                onPress={onClose}
+                style={[styles.closeBtn, { backgroundColor: colors.bgElevated }]}
+              >
+                <Ionicons name="close" size={18} color={colors.textPrimary} />
               </TouchableOpacity>
             )}
           </View>
 
-          <Text style={styles.label}>Display Name</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Display Name</Text>
           <TextInput
             value={name}
             onChangeText={setName}
             placeholder="e.g. Danyal"
-            placeholderTextColor={Colors.textMuted}
-            style={styles.input}
+            placeholderTextColor={colors.textMuted}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.bgPrimary,
+                borderColor: colors.borderSubtle,
+                color: colors.textPrimary,
+              },
+            ]}
           />
 
-          <Text style={styles.label}>Beacon Ring Color</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Beacon Ring Color</Text>
           <View style={styles.row}>
             {AVATAR_COLORS.map((c) => (
               <TouchableOpacity
@@ -95,32 +113,78 @@ export function OnboardingModal({ visible, isFirstLaunch, onClose }: OnboardingM
                 style={[
                   styles.swatch,
                   { backgroundColor: c },
-                  color === c && styles.swatchActive,
+                  color === c && { borderWidth: 3, borderColor: colors.textPrimary },
                 ]}
               />
             ))}
           </View>
 
-          <Text style={styles.label}>Telemetry Speed Unit</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>App Theme</Text>
           <View style={styles.row}>
-            {(['kmh', 'mph'] as const).map((u) => (
-              <TouchableOpacity
-                key={u}
-                onPress={() => setSpeedUnit(u)}
-                style={[styles.unitChip, speedUnit === u && styles.unitChipActive]}
-              >
-                <Text style={[styles.unitText, speedUnit === u && styles.unitTextActive]}>
-                  {u === 'kmh' ? 'km/h' : 'mph'}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {(['dark', 'light'] as const).map((mode) => {
+              const active = themeMode === mode;
+              return (
+                <TouchableOpacity
+                  key={mode}
+                  onPress={() => setThemeMode(mode)}
+                  style={[
+                    styles.unitChip,
+                    {
+                      backgroundColor: active ? colors.accentPrimaryDim : colors.bgElevated,
+                      borderColor: active ? colors.accentPrimary : colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.unitText,
+                      { color: active ? colors.accentPrimary : colors.textSecondary },
+                    ]}
+                  >
+                    {mode === 'dark' ? 'Dark Navy' : 'Light Mint'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          <TouchableOpacity onPress={handleSave} style={styles.ctaBtn}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Telemetry Speed Unit</Text>
+          <View style={styles.row}>
+            {(['kmh', 'mph'] as const).map((u) => {
+              const active = speedUnit === u;
+              return (
+                <TouchableOpacity
+                  key={u}
+                  onPress={() => setSpeedUnit(u)}
+                  style={[
+                    styles.unitChip,
+                    {
+                      backgroundColor: active ? colors.accentPrimaryDim : colors.bgElevated,
+                      borderColor: active ? colors.accentPrimary : colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.unitText,
+                      { color: active ? colors.accentPrimary : colors.textSecondary },
+                    ]}
+                  >
+                    {u === 'kmh' ? 'km/h' : 'mph'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            onPress={handleSave}
+            style={[styles.ctaBtn, { backgroundColor: colors.accentPrimary }]}
+          >
             <Text style={styles.ctaText}>
               {isFirstLaunch ? 'Enter KinOrbit' : 'Save Profile'}
             </Text>
-            <Ionicons name="arrow-forward" size={16} color={Colors.textInverse} />
+            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -131,17 +195,15 @@ export function OnboardingModal({ visible, isFirstLaunch, onClose }: OnboardingM
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 9, 11, 0.84)',
+    backgroundColor: 'rgba(5, 9, 11, 0.8)',
     justifyContent: 'center',
     padding: Spacing.lg,
   },
   card: {
-    backgroundColor: Colors.bgSecondary,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: Colors.borderAccent,
     padding: Spacing.lg,
-    gap: 14,
+    gap: 12,
   },
   brandRow: {
     flexDirection: 'row',
@@ -166,39 +228,32 @@ const styles = StyleSheet.create({
   previewInitials: {
     fontSize: 15,
     fontWeight: '900',
-    color: Colors.textInverse,
+    color: '#FFFFFF',
   },
   eyebrow: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
-    color: Colors.accentPrimary,
   },
   title: {
     fontSize: 19,
     fontWeight: '800',
-    color: Colors.textPrimary,
     marginTop: 2,
   },
   closeBtn: {
-    backgroundColor: Colors.bgElevated,
     padding: 7,
     borderRadius: Radii.pill,
   },
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textSecondary,
     marginTop: 2,
   },
   input: {
-    backgroundColor: Colors.bgPrimary,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     borderRadius: Radii.sm,
     paddingHorizontal: 14,
     paddingVertical: 11,
-    color: Colors.textPrimary,
     fontSize: 15,
   },
   row: {
@@ -210,34 +265,19 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
   },
-  swatchActive: {
-    borderWidth: 3,
-    borderColor: Colors.textPrimary,
-  },
   unitChip: {
     flex: 1,
-    backgroundColor: Colors.bgElevated,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     borderRadius: Radii.sm,
     paddingVertical: 10,
     alignItems: 'center',
   },
-  unitChipActive: {
-    backgroundColor: Colors.accentPrimaryDim,
-    borderColor: Colors.accentPrimary,
-  },
   unitText: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.textSecondary,
-  },
-  unitTextActive: {
-    color: Colors.accentPrimary,
   },
   ctaBtn: {
     marginTop: 6,
-    backgroundColor: Colors.accentPrimary,
     borderRadius: Radii.md,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -248,6 +288,6 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.textInverse,
+    color: '#FFFFFF',
   },
 });

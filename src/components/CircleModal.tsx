@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useOrbit } from '../context/OrbitContext';
-import { Colors, Radii, Spacing } from '../theme/tokens';
+import { Radii, Spacing } from '../theme/tokens';
 
 interface CircleModalProps {
   visible: boolean;
@@ -19,7 +19,8 @@ interface CircleModalProps {
 }
 
 export function CircleModal({ visible, onClose }: CircleModalProps) {
-  const { circles, activeCircle, switchCircle, createCircle, joinCircleByCode } = useOrbit();
+  const { circles, activeCircle, colors, switchCircle, createCircle, joinCircleByCode } =
+    useOrbit();
   const [newName, setNewName] = useState('');
   const [inviteInput, setInviteInput] = useState('');
 
@@ -43,18 +44,35 @@ export function CircleModal({ visible, onClose }: CircleModalProps) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+        <View
+          style={[
+            styles.sheet,
+            { backgroundColor: colors.bgSecondary, borderColor: colors.borderSubtle },
+          ]}
+        >
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Your Orbits</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color={Colors.textPrimary} />
+            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Your Orbits</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[styles.closeBtn, { backgroundColor: colors.bgElevated }]}
+            >
+              <Ionicons name="close" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inviteBox}>
-            <Text style={styles.inviteLabel}>ACTIVE INVITE CODE</Text>
-            <Text style={styles.inviteCode}>{activeCircle.inviteCode}</Text>
-            <Text style={styles.inviteHint}>
+          <View
+            style={[
+              styles.inviteBox,
+              { backgroundColor: colors.accentPrimaryDim, borderColor: colors.borderAccent },
+            ]}
+          >
+            <Text style={[styles.inviteLabel, { color: colors.accentPrimary }]}>
+              ACTIVE INVITE CODE
+            </Text>
+            <Text style={[styles.inviteCode, { color: colors.textPrimary }]}>
+              {activeCircle.inviteCode}
+            </Text>
+            <Text style={[styles.inviteHint, { color: colors.textSecondary }]}>
               Share this code with family or crew to join {activeCircle.name}
             </Text>
             <TouchableOpacity
@@ -63,10 +81,15 @@ export function CircleModal({ visible, onClose }: CircleModalProps) {
                   message: `Join my "${activeCircle.name}" Orbit on KinOrbit! Invite code: ${activeCircle.inviteCode}`,
                 }).catch(() => {})
               }
-              style={styles.shareCodeBtn}
+              style={[
+                styles.shareCodeBtn,
+                { backgroundColor: colors.bgSecondary, borderColor: colors.borderAccent },
+              ]}
             >
-              <Ionicons name="share-social-outline" size={14} color={Colors.accentPrimary} />
-              <Text style={styles.shareCodeText}>Share Invite</Text>
+              <Ionicons name="share-social-outline" size={14} color={colors.accentPrimary} />
+              <Text style={[styles.shareCodeText, { color: colors.accentPrimary }]}>
+                Share Invite
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -80,49 +103,82 @@ export function CircleModal({ visible, onClose }: CircleModalProps) {
                     switchCircle(c.id);
                     onClose();
                   }}
-                  style={[styles.circleItem, selected && styles.circleItemActive]}
+                  style={[
+                    styles.circleItem,
+                    {
+                      backgroundColor: colors.bgElevated,
+                      borderColor: selected ? colors.accentPrimary : colors.borderSubtle,
+                    },
+                  ]}
                 >
                   <View style={[styles.dot, { backgroundColor: c.accentColor }]} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.circleItemName}>{c.name}</Text>
-                    <Text style={styles.circleItemMeta}>
+                    <Text style={[styles.circleItemName, { color: colors.textPrimary }]}>
+                      {c.name}
+                    </Text>
+                    <Text style={[styles.circleItemMeta, { color: colors.textSecondary }]}>
                       {c.memberIds.length} members • Code {c.inviteCode}
                     </Text>
                   </View>
                   {selected && (
-                    <Ionicons name="checkmark-circle" size={20} color={Colors.accentPrimary} />
+                    <Ionicons name="checkmark-circle" size={20} color={colors.accentPrimary} />
                   )}
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          <Text style={styles.sectionLabel}>Create New Orbit</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Create New Orbit</Text>
           <View style={styles.inputRow}>
             <TextInput
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. Weekend Hiking"
-              placeholderTextColor={Colors.textMuted}
-              style={styles.input}
+              placeholderTextColor={colors.textMuted}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.bgPrimary,
+                  borderColor: colors.borderSubtle,
+                  color: colors.textPrimary,
+                },
+              ]}
             />
-            <TouchableOpacity onPress={handleCreate} style={styles.actionBtn}>
+            <TouchableOpacity
+              onPress={handleCreate}
+              style={[styles.actionBtn, { backgroundColor: colors.accentPrimary }]}
+            >
               <Text style={styles.actionBtnText}>Create</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.sectionLabel}>Join with Invite Code</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            Join with Invite Code
+          </Text>
           <View style={styles.inputRow}>
             <TextInput
               value={inviteInput}
               onChangeText={setInviteInput}
               placeholder="Enter 6-char code"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="characters"
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.bgPrimary,
+                  borderColor: colors.borderSubtle,
+                  color: colors.textPrimary,
+                },
+              ]}
             />
-            <TouchableOpacity onPress={handleJoin} style={styles.actionBtnSecondary}>
-              <Text style={styles.actionBtnSecText}>Join</Text>
+            <TouchableOpacity
+              onPress={handleJoin}
+              style={[
+                styles.actionBtnSecondary,
+                { backgroundColor: colors.bgElevated, borderColor: colors.borderAccent },
+              ]}
+            >
+              <Text style={[styles.actionBtnSecText, { color: colors.accentPrimary }]}>Join</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -138,11 +194,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.bgSecondary,
     borderTopLeftRadius: Radii.lg,
     borderTopRightRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     padding: Spacing.lg,
     gap: 14,
   },
@@ -154,17 +208,13 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: Colors.textPrimary,
   },
   closeBtn: {
-    backgroundColor: Colors.bgElevated,
     padding: 8,
     borderRadius: Radii.pill,
   },
   inviteBox: {
-    backgroundColor: Colors.accentPrimaryDim,
     borderWidth: 1,
-    borderColor: Colors.borderAccent,
     borderRadius: Radii.md,
     padding: 14,
     alignItems: 'center',
@@ -174,17 +224,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
-    color: Colors.accentPrimary,
   },
   inviteCode: {
     fontSize: 24,
     fontWeight: '900',
     letterSpacing: 4,
-    color: Colors.textPrimary,
   },
   inviteHint: {
     fontSize: 12,
-    color: Colors.textSecondary,
     textAlign: 'center',
   },
   shareCodeBtn: {
@@ -192,9 +239,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: Colors.bgSecondary,
     borderWidth: 1,
-    borderColor: Colors.borderAccent,
     borderRadius: Radii.pill,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -202,7 +247,6 @@ const styles = StyleSheet.create({
   shareCodeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.accentPrimary,
   },
   circleList: {
     gap: 8,
@@ -211,14 +255,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.bgElevated,
     padding: 12,
     borderRadius: Radii.md,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-  },
-  circleItemActive: {
-    borderColor: Colors.accentPrimary,
   },
   dot: {
     width: 12,
@@ -228,16 +267,13 @@ const styles = StyleSheet.create({
   circleItemName: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.textPrimary,
   },
   circleItemMeta: {
     fontSize: 12,
-    color: Colors.textSecondary,
   },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textSecondary,
     marginTop: 4,
   },
   inputRow: {
@@ -246,36 +282,29 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: Colors.bgPrimary,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     borderRadius: Radii.sm,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: Colors.textPrimary,
     fontSize: 14,
   },
   actionBtn: {
-    backgroundColor: Colors.accentPrimary,
     borderRadius: Radii.sm,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
   actionBtnText: {
-    color: Colors.textInverse,
+    color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 13,
   },
   actionBtnSecondary: {
-    backgroundColor: Colors.bgElevated,
     borderWidth: 1,
-    borderColor: Colors.borderAccent,
     borderRadius: Radii.sm,
     paddingHorizontal: 18,
     justifyContent: 'center',
   },
   actionBtnSecText: {
-    color: Colors.accentPrimary,
     fontWeight: '800',
     fontSize: 13,
   },

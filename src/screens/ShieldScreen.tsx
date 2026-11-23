@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOrbit } from '../context/OrbitContext';
-import { Colors, Radii, Spacing } from '../theme/tokens';
+import { Radii, Spacing } from '../theme/tokens';
 import { formatSpeed, formatTimeAgo } from '../utils/geo';
 
 export function ShieldScreen() {
@@ -19,6 +19,7 @@ export function ShieldScreen() {
   const {
     selfMember,
     profile,
+    colors,
     trips,
     contacts,
     ghostMode,
@@ -63,25 +64,32 @@ export function ShieldScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <Text style={styles.eyebrow}>SHIELD & TELEMETRY</Text>
-      <Text style={styles.title}>Safety Command</Text>
+    <View style={[styles.container, { paddingTop: insets.top + 12, backgroundColor: colors.bgPrimary }]}>
+      <Text style={[styles.eyebrow, { color: colors.accentPrimary }]}>SHIELD & TELEMETRY</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>Safety Command</Text>
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* SOS Beacon Card */}
-        <View style={[styles.sosCard, sosActive && styles.sosCardActive]}>
+        <View
+          style={[
+            styles.sosCard,
+            {
+              backgroundColor: sosActive ? colors.accentCrimsonDim : colors.bgSecondary,
+              borderColor: sosActive ? colors.accentCrimson : colors.accentCrimsonDim,
+            },
+          ]}
+        >
           <View style={styles.sosInfo}>
-            <Text style={styles.sosTitle}>
+            <Text style={[styles.sosTitle, { color: colors.textPrimary }]}>
               {sosActive
                 ? 'SOS Beacon Broadcasting'
                 : countdown !== null
                 ? `Arming SOS in ${countdown}s...`
                 : 'Emergency SOS Beacon'}
             </Text>
-            <Text style={styles.sosSub}>
+            <Text style={[styles.sosSub, { color: colors.textSecondary }]}>
               {sosActive
                 ? 'Your Orbit and Emergency Contacts are receiving your live GPS coordinates.'
                 : 'Tap to start a 3-second countdown and alert your entire Orbit with your live pin.'}
@@ -90,8 +98,11 @@ export function ShieldScreen() {
 
           {sosActive ? (
             <View style={{ gap: 8 }}>
-              <TouchableOpacity onPress={resolveSos} style={styles.safeBtn}>
-                <Ionicons name="shield-checkmark" size={18} color={Colors.textInverse} />
+              <TouchableOpacity
+                onPress={resolveSos}
+                style={[styles.safeBtn, { backgroundColor: colors.accentMint }]}
+              >
+                <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" />
                 <Text style={styles.safeBtnText}>Mark Safe</Text>
               </TouchableOpacity>
               {contacts[0] && (
@@ -99,111 +110,153 @@ export function ShieldScreen() {
                   onPress={() =>
                     Linking.openURL(`tel:${contacts[0].phone.replace(/\s+/g, '')}`).catch(() => {})
                   }
-                  style={styles.callContactBtn}
+                  style={[styles.callContactBtn, { backgroundColor: colors.accentCrimson }]}
                 >
-                  <Ionicons name="call" size={14} color={Colors.textPrimary} />
+                  <Ionicons name="call" size={14} color="#FFFFFF" />
                   <Text style={styles.callContactText}>Call {contacts[0].name.split(' ')[0]}</Text>
                 </TouchableOpacity>
               )}
             </View>
           ) : countdown !== null ? (
-            <TouchableOpacity onPress={cancelCountdown} style={styles.cancelSosBtn}>
-              <Text style={styles.cancelSosText}>Cancel ({countdown})</Text>
+            <TouchableOpacity
+              onPress={cancelCountdown}
+              style={[
+                styles.cancelSosBtn,
+                { backgroundColor: colors.bgElevated, borderColor: colors.accentCrimson },
+              ]}
+            >
+              <Text style={[styles.cancelSosText, { color: colors.accentCrimson }]}>
+                Cancel ({countdown})
+              </Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={startSosCountdown} style={styles.sosBtn}>
-              <Ionicons name="warning" size={22} color={Colors.textPrimary} />
+            <TouchableOpacity
+              onPress={startSosCountdown}
+              style={[styles.sosBtn, { backgroundColor: colors.accentCrimson }]}
+            >
+              <Ionicons name="warning" size={22} color="#FFFFFF" />
               <Text style={styles.sosBtnText}>SOS</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Privacy & Live Telemetry */}
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.bgSecondary, borderColor: colors.borderSubtle },
+          ]}
+        >
           <View style={styles.rowBetween}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={styles.cardTitle}>Ghost Mode (Pause Sharing)</Text>
-              <Text style={styles.cardSub}>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+                Ghost Mode (Pause Sharing)
+              </Text>
+              <Text style={[styles.cardSub, { color: colors.textSecondary }]}>
                 Temporarily freeze your live pin on your Orbit map while keeping SOS ready.
               </Text>
             </View>
             <Switch
               value={ghostMode}
               onValueChange={toggleGhostMode}
-              trackColor={{ false: Colors.bgElevated, true: Colors.accentAmberDim }}
-              thumbColor={ghostMode ? Colors.accentAmber : Colors.textMuted}
+              trackColor={{ false: colors.bgElevated, true: colors.accentAmberDim }}
+              thumbColor={ghostMode ? colors.accentAmber : colors.textMuted}
             />
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
 
           <View style={styles.metricsGrid}>
-            <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>SPEED</Text>
-              <Text style={styles.metricValue}>
+            <View style={[styles.metricBox, { backgroundColor: colors.bgElevated }]}>
+              <Text style={[styles.metricLabel, { color: colors.textMuted }]}>SPEED</Text>
+              <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
                 {formatSpeed(selfMember.speedKmh, profile.speedUnit)}
               </Text>
             </View>
-            <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>BATTERY</Text>
-              <Text style={styles.metricValue}>{selfMember.batteryPct}%</Text>
+            <View style={[styles.metricBox, { backgroundColor: colors.bgElevated }]}>
+              <Text style={[styles.metricLabel, { color: colors.textMuted }]}>BATTERY</Text>
+              <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
+                {selfMember.batteryPct}%
+              </Text>
             </View>
-            <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>ZONE</Text>
-              <Text style={styles.metricValue} numberOfLines={1}>
+            <View style={[styles.metricBox, { backgroundColor: colors.bgElevated }]}>
+              <Text style={[styles.metricLabel, { color: colors.textMuted }]}>ZONE</Text>
+              <Text style={[styles.metricValue, { color: colors.textPrimary }]} numberOfLines={1}>
                 {selfMember.currentZoneName ?? 'Transit'}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Drive Safety Trips */}
         <View style={styles.tripHeaderRow}>
-          <Text style={styles.sectionTitle}>Recent Drive Telemetry</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            Recent Drive Telemetry
+          </Text>
           <TouchableOpacity
             onPress={startTestDrive}
             disabled={simulatingDrive}
-            style={[styles.simBtn, simulatingDrive && styles.simBtnActive]}
+            style={[
+              styles.simBtn,
+              {
+                backgroundColor: simulatingDrive ? colors.accentPrimary : colors.accentPrimaryDim,
+                borderColor: colors.borderAccent,
+              },
+            ]}
           >
             <Ionicons
               name={simulatingDrive ? 'car-sport' : 'play-outline'}
               size={13}
-              color={simulatingDrive ? Colors.textInverse : Colors.accentPrimary}
+              color={simulatingDrive ? '#FFFFFF' : colors.accentPrimary}
             />
             <Text
-              style={[styles.simBtnText, simulatingDrive && styles.simBtnTextActive]}
+              style={[
+                styles.simBtnText,
+                { color: simulatingDrive ? '#FFFFFF' : colors.accentPrimary },
+              ]}
             >
               {simulatingDrive ? 'Driving...' : 'Simulate Drive'}
             </Text>
           </TouchableOpacity>
         </View>
+
         {trips.map((trip) => (
-          <View key={trip.id} style={styles.tripCard}>
+          <View
+            key={trip.id}
+            style={[
+              styles.tripCard,
+              { backgroundColor: colors.bgSecondary, borderColor: colors.borderSubtle },
+            ]}
+          >
             <View style={styles.tripTop}>
-              <View style={styles.scoreBadge}>
-                <Text style={styles.scoreValue}>{trip.safetyScore}</Text>
-                <Text style={styles.scoreLabel}>SCORE</Text>
+              <View
+                style={[
+                  styles.scoreBadge,
+                  { backgroundColor: colors.accentMintDim, borderColor: colors.accentMint },
+                ]}
+              >
+                <Text style={[styles.scoreValue, { color: colors.accentMint }]}>
+                  {trip.safetyScore}
+                </Text>
+                <Text style={[styles.scoreLabel, { color: colors.accentMint }]}>SCORE</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.tripRoute}>
+                <Text style={[styles.tripRoute, { color: colors.textPrimary }]}>
                   {trip.originLabel} → {trip.destinationLabel}
                 </Text>
-                <Text style={styles.tripMeta}>
+                <Text style={[styles.tripMeta, { color: colors.textSecondary }]}>
                   {trip.memberName} • {trip.distanceKm} km • {trip.durationMin} min •{' '}
                   {formatTimeAgo(trip.timestamp)}
                 </Text>
               </View>
             </View>
-            <View style={styles.tripStatsRow}>
-              <Text style={styles.tripStat}>
+            <View style={[styles.tripStatsRow, { borderTopColor: colors.borderSubtle }]}>
+              <Text style={[styles.tripStat, { color: colors.textSecondary }]}>
                 Max {formatSpeed(trip.maxSpeedKmh, profile.speedUnit)}
               </Text>
               <Text
                 style={[
                   styles.tripStat,
                   {
-                    color:
-                      trip.eventsCount === 0 ? Colors.accentPrimary : Colors.accentAmber,
+                    color: trip.eventsCount === 0 ? colors.accentMint : colors.accentAmber,
                   },
                 ]}
               >
@@ -222,19 +275,16 @@ export function ShieldScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bgPrimary,
     paddingHorizontal: Spacing.md,
   },
   eyebrow: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
-    color: Colors.accentPrimary,
   },
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.textPrimary,
     marginTop: 2,
     marginBottom: Spacing.md,
   },
@@ -242,18 +292,12 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   sosCard: {
-    backgroundColor: Colors.bgSecondary,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: Colors.accentCrimsonDim,
     padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  sosCardActive: {
-    borderColor: Colors.accentCrimson,
-    backgroundColor: Colors.accentCrimsonDim,
   },
   sosInfo: {
     flex: 1,
@@ -262,18 +306,15 @@ const styles = StyleSheet.create({
   sosTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.textPrimary,
   },
   sosSub: {
     fontSize: 12,
-    color: Colors.textSecondary,
     lineHeight: 17,
   },
   sosBtn: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.accentCrimson,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
@@ -281,23 +322,19 @@ const styles = StyleSheet.create({
   sosBtnText: {
     fontSize: 12,
     fontWeight: '900',
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   cancelSosBtn: {
-    backgroundColor: Colors.bgElevated,
     borderWidth: 1,
-    borderColor: Colors.accentCrimson,
     borderRadius: Radii.pill,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   cancelSosText: {
-    color: Colors.accentCrimson,
     fontWeight: '800',
     fontSize: 12,
   },
   safeBtn: {
-    backgroundColor: Colors.accentPrimary,
     borderRadius: Radii.pill,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -306,12 +343,11 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   safeBtnText: {
-    color: Colors.textInverse,
+    color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 12,
   },
   callContactBtn: {
-    backgroundColor: Colors.accentCrimson,
     borderRadius: Radii.pill,
     paddingHorizontal: 14,
     paddingVertical: 9,
@@ -321,7 +357,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   callContactText: {
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 12,
   },
@@ -335,29 +371,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: Colors.accentPrimaryDim,
     borderWidth: 1,
-    borderColor: Colors.borderAccent,
     borderRadius: Radii.pill,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  simBtnActive: {
-    backgroundColor: Colors.accentPrimary,
-  },
   simBtnText: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.accentPrimary,
-  },
-  simBtnTextActive: {
-    color: Colors.textInverse,
   },
   card: {
-    backgroundColor: Colors.bgSecondary,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     padding: Spacing.md,
     gap: 14,
   },
@@ -369,17 +394,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.textPrimary,
   },
   cardSub: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginTop: 3,
     lineHeight: 17,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.borderSubtle,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -387,7 +409,6 @@ const styles = StyleSheet.create({
   },
   metricBox: {
     flex: 1,
-    backgroundColor: Colors.bgElevated,
     borderRadius: Radii.md,
     padding: 12,
     gap: 4,
@@ -396,24 +417,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
-    color: Colors.textMuted,
   },
   metricValue: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.textPrimary,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: Colors.textSecondary,
-    marginTop: 4,
   },
   tripCard: {
-    backgroundColor: Colors.bgSecondary,
     borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     padding: Spacing.md,
     gap: 10,
   },
@@ -426,42 +441,34 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: Colors.accentPrimaryDim,
     borderWidth: 1,
-    borderColor: Colors.borderAccent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scoreValue: {
     fontSize: 16,
     fontWeight: '900',
-    color: Colors.accentPrimary,
   },
   scoreLabel: {
     fontSize: 8,
     fontWeight: '800',
-    color: Colors.accentPrimary,
   },
   tripRoute: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.textPrimary,
   },
   tripMeta: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginTop: 2,
   },
   tripStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
     paddingTop: 8,
   },
   tripStat: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textSecondary,
   },
 });

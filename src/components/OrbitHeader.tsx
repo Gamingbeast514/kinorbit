@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useOrbit } from '../context/OrbitContext';
-import { Colors, Radii, Spacing } from '../theme/tokens';
+import { Radii, Spacing } from '../theme/tokens';
 
 interface OrbitHeaderProps {
   onOpenCircles: () => void;
@@ -10,46 +10,48 @@ interface OrbitHeaderProps {
 }
 
 export function OrbitHeader({ onOpenCircles, onQuickCheckIn }: OrbitHeaderProps) {
-  const { activeCircle, activeMembers, ghostMode, sosActive } = useOrbit();
+  const { activeCircle, colors, profile, toggleThemeMode, sosActive } = useOrbit();
 
   return (
     <View style={styles.wrapper}>
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={onOpenCircles}
-        style={styles.circlePill}
+        onPress={toggleThemeMode}
+        style={[
+          styles.iconBtn,
+          { backgroundColor: colors.bgGlass, borderColor: colors.borderSubtle },
+        ]}
       >
-        <View
-          style={[
-            styles.pulseDot,
-            {
-              backgroundColor: sosActive
-                ? Colors.accentCrimson
-                : ghostMode
-                ? Colors.accentAmber
-                : Colors.accentPrimary,
-            },
-          ]}
+        <Ionicons
+          name={profile.themeMode === 'dark' ? 'sunny-outline' : 'moon-outline'}
+          size={19}
+          color={colors.textPrimary}
         />
-        <View>
-          <Text style={styles.brandLabel}>KINORBIT</Text>
-          <View style={styles.circleRow}>
-            <Text style={styles.circleName}>{activeCircle.name}</Text>
-            <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
-          </View>
-        </View>
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>{activeMembers.length}</Text>
-        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onOpenCircles}
+        style={[
+          styles.centerPill,
+          {
+            backgroundColor: sosActive ? colors.accentCrimson : colors.accentPrimary,
+          },
+        ]}
+      >
+        <Text style={styles.circleName}>{activeCircle.name}</Text>
+        <Ionicons name="chevron-down" size={14} color="#FFFFFF" />
       </TouchableOpacity>
 
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onQuickCheckIn}
-        style={styles.checkInBtn}
+        style={[
+          styles.iconBtn,
+          { backgroundColor: colors.bgGlass, borderColor: colors.borderSubtle },
+        ]}
       >
-        <Ionicons name="radio-outline" size={16} color={Colors.textInverse} />
-        <Text style={styles.checkInText}>Check In</Text>
+        <Ionicons name="radio-outline" size={19} color={colors.accentPrimary} />
       </TouchableOpacity>
     </View>
   );
@@ -61,63 +63,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    gap: Spacing.sm,
   },
-  circlePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bgGlass,
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    borderRadius: Radii.pill,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    gap: 10,
-  },
-  pulseDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  brandLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    color: Colors.accentPrimary,
-  },
-  circleRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'center',
   },
-  circleName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  countBadge: {
-    backgroundColor: Colors.accentPrimaryDim,
-    borderRadius: Radii.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.accentPrimary,
-  },
-  checkInBtn: {
+  centerPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.accentPrimary,
     borderRadius: Radii.pill,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 20,
+    elevation: 4,
   },
-  checkInText: {
-    fontSize: 13,
+  circleName: {
+    fontSize: 14,
     fontWeight: '800',
-    color: Colors.textInverse,
+    color: '#FFFFFF',
   },
 });

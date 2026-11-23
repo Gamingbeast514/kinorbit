@@ -8,7 +8,7 @@ import { OnboardingModal } from '../components/OnboardingModal';
 import { OrbitHeader } from '../components/OrbitHeader';
 import { RadarMapView } from '../components/RadarMapView';
 import { useOrbit } from '../context/OrbitContext';
-import { Colors, Radii, Spacing } from '../theme/tokens';
+import { Radii, Spacing } from '../theme/tokens';
 import { OrbitMember } from '../types/orbit';
 
 export function RadarScreen() {
@@ -22,6 +22,7 @@ export function RadarScreen() {
     liveBanner,
     dismissBanner,
     profile,
+    colors,
     locationPermission,
   } = useOrbit();
 
@@ -51,7 +52,7 @@ export function RadarScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
       <RadarMapView focusTrigger={focusTrigger} />
 
       <View style={[styles.topOverlay, { paddingTop: insets.top + 8 }]}>
@@ -61,8 +62,8 @@ export function RadarScreen() {
         />
 
         {sosActive && (
-          <View style={styles.sosBanner}>
-            <Ionicons name="warning" size={16} color={Colors.textPrimary} />
+          <View style={[styles.sosBanner, { backgroundColor: colors.accentCrimson }]}>
+            <Ionicons name="warning" size={16} color="#FFFFFF" />
             <Text style={styles.sosBannerText}>
               SOS BEACON ACTIVE — Live coordinates broadcasting
             </Text>
@@ -73,17 +74,30 @@ export function RadarScreen() {
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={dismissBanner}
-            style={styles.liveBanner}
+            style={[
+              styles.liveBanner,
+              {
+                backgroundColor: colors.bgGlass,
+                borderColor: colors.borderAccent,
+              },
+            ]}
           >
-            <Ionicons name="notifications" size={15} color={Colors.accentPrimary} />
-            <Text style={styles.liveBannerText}>{liveBanner}</Text>
+            <Ionicons name="notifications" size={15} color={colors.accentPrimary} />
+            <Text style={[styles.liveBannerText, { color: colors.textPrimary }]}>
+              {liveBanner}
+            </Text>
           </TouchableOpacity>
         )}
 
         {locationPermission === 'denied' && (
-          <View style={styles.permBanner}>
-            <Ionicons name="location-outline" size={15} color={Colors.accentAmber} />
-            <Text style={styles.permBannerText}>
+          <View
+            style={[
+              styles.permBanner,
+              { backgroundColor: colors.bgGlass, borderColor: colors.accentAmber },
+            ]}
+          >
+            <Ionicons name="location-outline" size={15} color={colors.accentAmber} />
+            <Text style={[styles.permBannerText, { color: colors.accentAmber }]}>
               GPS permission denied — showing simulated Orbit coordinates
             </Text>
           </View>
@@ -91,9 +105,14 @@ export function RadarScreen() {
       </View>
 
       {toast && (
-        <View style={styles.toast}>
-          <Ionicons name="checkmark-circle" size={16} color={Colors.accentPrimary} />
-          <Text style={styles.toastText}>{toast}</Text>
+        <View
+          style={[
+            styles.toast,
+            { backgroundColor: colors.bgGlass, borderColor: colors.borderAccent },
+          ]}
+        >
+          <Ionicons name="checkmark-circle" size={16} color={colors.accentPrimary} />
+          <Text style={[styles.toastText, { color: colors.textPrimary }]}>{toast}</Text>
         </View>
       )}
 
@@ -101,9 +120,12 @@ export function RadarScreen() {
         <View style={styles.recenterRow}>
           <TouchableOpacity
             onPress={() => handleFocusMember(selfMember)}
-            style={styles.recenterBtn}
+            style={[
+              styles.recenterBtn,
+              { backgroundColor: colors.bgGlass, borderColor: colors.borderSubtle },
+            ]}
           >
-            <Ionicons name="locate" size={18} color={Colors.accentPrimary} />
+            <Ionicons name="locate" size={18} color={colors.accentPrimary} />
           </TouchableOpacity>
         </View>
         <MemberTelemetryStrip
@@ -125,7 +147,6 @@ export function RadarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bgPrimary,
   },
   topOverlay: {
     position: 'absolute',
@@ -136,7 +157,6 @@ const styles = StyleSheet.create({
   },
   sosBanner: {
     marginHorizontal: Spacing.md,
-    backgroundColor: Colors.accentCrimson,
     borderRadius: Radii.md,
     paddingVertical: 9,
     paddingHorizontal: 14,
@@ -145,15 +165,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sosBannerText: {
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
   },
   liveBanner: {
     marginHorizontal: Spacing.md,
-    backgroundColor: Colors.bgGlass,
     borderWidth: 1,
-    borderColor: Colors.borderAccent,
     borderRadius: Radii.md,
     paddingVertical: 9,
     paddingHorizontal: 14,
@@ -162,15 +180,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   liveBannerText: {
-    color: Colors.textPrimary,
     fontSize: 12,
     fontWeight: '700',
   },
   permBanner: {
     marginHorizontal: Spacing.md,
-    backgroundColor: Colors.bgGlass,
     borderWidth: 1,
-    borderColor: Colors.accentAmber,
     borderRadius: Radii.md,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -179,7 +194,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   permBannerText: {
-    color: Colors.accentAmber,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -190,15 +204,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.bgGlass,
     borderWidth: 1,
-    borderColor: Colors.borderAccent,
     borderRadius: Radii.pill,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   toastText: {
-    color: Colors.textPrimary,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -217,9 +228,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.bgGlass,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
